@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streamscribe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1714;--panel:#13211c;--line:#25382f;--ink:#e8e4d4;--mute:#93a398;--amber:#f0a73a;--ok:#7fc99a;--bad:#e5806b;
+--head:"Bricolage Grotesque",system-ui,sans-serif;--read:"Source Serif 4",Georgia,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+h1,h2{font-family:var(--head);margin:0}
+.app{display:grid;grid-template-columns:360px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--line);padding:28px 24px;display:flex;flex-direction:column;gap:22px}
+main{padding:28px 36px;max-width:900px;width:100%}
+h1{font-size:26px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:4px 0 0}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
+textarea,input,select{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+textarea{resize:vertical;min-height:140px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+details{border-top:1px solid var(--line);padding-top:14px}
+summary{cursor:pointer;font-family:var(--head);font-size:17px}
+.note{font-size:12.5px;color:var(--mute);margin:8px 0 0}
+.chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:var(--mute)}
+.chk input{width:auto}
+.btn{background:var(--amber);color:#1b1405;border:0;border-radius:8px;padding:11px 16px;font-weight:600;cursor:pointer;width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.ghost{background:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;color:var(--mute);font-size:13px;width:auto}
+.ghost:hover{color:var(--ink);border-color:var(--mute)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{background:none;border:0;padding:8px 0;cursor:pointer;color:var(--mute);font-family:var(--head);font-size:18px;border-bottom:2px solid transparent}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--amber)}
+.bar{display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:13px;margin-bottom:6px}
+.empty{color:var(--mute);padding:40px 0;max-width:46ch}
+.item{border-bottom:1px solid var(--line);padding:14px 0}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;cursor:pointer}
+.ttl{font-family:var(--head);font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st{font-size:13px;color:var(--mute);white-space:nowrap}
+.st.done{color:var(--ok)}.st.error{color:var(--bad)}
+.url{font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.sig{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px}
+.sig i{height:5px;border-radius:3px;background:var(--line)}
+.sig i.on{background:var(--amber);animation:pulse 1.2s ease-in-out infinite}
+.sig i.ok{background:var(--ok)}
+.sig.err i{background:var(--bad);opacity:.5}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.sig i.on{animation:none}}
+.body{display:none;margin-top:14px}
+.item.open .body{display:block}
+.txt{font-family:var(--read);font-size:17px;line-height:1.65;max-width:68ch;white-space:pre-wrap}
+.acts{display:flex;gap:8px;margin-top:12px}
+.err{color:var(--bad);font-size:13.5px;margin:10px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.ans{font-family:var(--read);font-size:17px;line-height:1.65;max-width:68ch;white-space:pre-wrap;margin-top:18px}
+.drop textarea{border-color:var(--amber);background:#1a2c25}
+.drop .note{color:var(--amber)}
+.pj{display:flex;justify-content:space-between;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:7px 10px;cursor:pointer;color:var(--mute)}
+.pj:hover{color:var(--ink)}.pj.on{background:var(--panel);color:var(--ink)}
+.pc{font-size:12px}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-family:var(--head);font-size:17px}
+.turn{margin:0 0 14px;max-width:68ch;white-space:pre-wrap;font-family:var(--read);font-size:17px;line-height:1.65}
+.turn.u{color:var(--mute);border-left:2px solid var(--line);padding-left:12px;font-family:system-ui,sans-serif;font-size:15px}
+#chatlog{margin-bottom:14px}
+.msg{min-height:20px;font-size:13px;color:var(--bad);margin:-8px 0 0}
+@media(max-width:860px){.app{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}main{padding:22px 20px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div><h1>Streamscribe</h1><p class="sub">Paste video links. Get titled transcripts, without saving a single video.</p></div>
+  <div>
+    <div class="phead"><span>Projects</span><button class="ghost" id="newp">New project</button></div>
+    <div id="plist"></div>
+    <p class="note"><button class="ghost" id="renp">Rename</button> <button class="ghost" id="delp">Delete</button></p>
+  </div>
+  <div id="zone">
+    <label for="urls">Video links, one per line</label>
+    <textarea id="urls" placeholder="Paste links here, or drop a .txt file of links anywhere on this page"></textarea>
+    <p class="note"><span id="count">0 links</span> · <button class="ghost" id="pick" type="button">Choose a .txt file</button></p>
+    <input id="file" type="file" accept=".txt,text/plain" multiple hidden>
+  </div>
+  <button class="btn" id="go">Transcribe links</button>
+  <p class="msg" id="msg" role="alert"></p>
+  <details open>
+    <summary>Your keys</summary>
+    <p class="note">Keys stay in this browser and travel with each request. The server doesn’t store or log them.</p>
+    <label for="stt-p">Speech to text</label>
+    <select id="stt-p"><option value="groq">Groq Whisper</option><option value="openai">OpenAI Whisper</option></select>
+    <label for="stt-key">API key</label><input id="stt-key" type="password" autocomplete="off">
+    <label for="llm-p">Cleanup and questions</label>
+    <select id="llm-p"><option value="ollama">Ollama Cloud</option><option value="groq">Groq</option><option value="openai">OpenAI</option></select>
+    <label for="llm-key">API key</label><input id="llm-key" type="password" autocomplete="off">
+    <label class="chk"><input id="remember" type="checkbox"> Remember keys on this device</label>
+  </details>
+  <details>
+    <summary>Memory</summary>
+    <p class="note">Save transcripts to Mem0 through your Composio account. Connect Mem0 in Composio first.</p>
+    <label for="cmp-key">Composio API key (ck_… works)</label><input id="cmp-key" type="password" autocomplete="off">
+    <label for="mem-scope">Memory name</label><input id="mem-scope" value="streamscribe">
+    <label for="mem-mode">Save as</label>
+    <select id="mem-mode"><option value="full">Whole transcript</option><option value="facts">Key facts only</option></select>
+    <label class="chk"><input id="auto" type="checkbox" checked> Save each transcript when it finishes</label>
+  </details>
+  <details>
+    <summary>Advanced</summary>
+    <div class="row"><div><label for="stt-model">Whisper model</label><input id="stt-model"></div><div><label for="llm-model">Chat model</label><input id="llm-model"></div></div>
+    <label for="stt-base">Speech endpoint</label><input id="stt-base">
+    <label for="llm-base">Chat endpoint</label><input id="llm-base">
+    <label for="cookies">cookies.txt (helps when TikTok blocks the server)</label>
+    <textarea id="cookies" style="min-height:70px" placeholder="# Netscape HTTP Cookie File"></textarea>
+    <label for="cmp-user">Composio user ID (optional)</label><input id="cmp-user">
+    <label for="cmp-acct">Mem0 connected account ID (optional)</label><input id="cmp-acct">
+  </details>
+</aside>
+<main>
+  <h2 id="ptitle" style="margin-bottom:14px"></h2>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-tr" aria-selected="true">Files</button>
+    <button class="tab" role="tab" id="t-ask" aria-selected="false">Chat</button>
+  </div>
+  <section id="p-tr">
+    <div class="bar"><span id="prog"></span><span><button class="ghost" id="adddoc">Add documents</button> <button class="ghost" id="savemem">Save all to memory</button> <button class="ghost" id="dlall">Download all</button> <button class="ghost" id="clear">Clear</button></span></div>
+    <input id="docfile" type="file" accept=".txt,.md,text/plain,text/markdown" multiple hidden>
+    <div id="list"></div>
+  </section>
+  <section id="p-ask" hidden>
+    <div id="chatlog"></div>
+    <textarea id="q" style="min-height:80px" placeholder="Ask anything about the files in this project"></textarea>
+    <div class="chips">
+      <button class="ghost" data-q="List the key lessons across these videos, grouped by theme.">Key lessons</button>
+      <button class="ghost" data-q="Which ideas are repeated across several videos, and which only appear once?">Repeated ideas</button>
+      <button class="ghost" data-q="Turn these videos into a step-by-step action plan.">Action plan</button>
+    </div>
+    <button class="btn" id="askgo" style="width:auto">Ask</button>
+    <button class="ghost" id="newchat">Clear chat</button>
+  </section>
+</main>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const PRE = {
+  stt: {groq: ["https://api.groq.com/openai/v1", "whisper-large-v3-turbo"], openai: ["https://api.openai.com/v1", "whisper-1"]},
+  llm: {ollama: ["https://ollama.com/v1", "gpt-oss:120b"], groq: ["https://api.groq.com/openai/v1", "openai/gpt-oss-120b"], openai: ["https://api.openai.com/v1", "gpt-4o-mini"]}
+};
+const F = ["stt-p","stt-key","stt-model","stt-base","llm-p","llm-key","llm-model","llm-base","cmp-key","cmp-user","cmp-acct","mem-scope","mem-mode"];
+const STAGE = {streaming: 0, transcribing: 1, polishing: 2, done: 3};
+let P = JSON.parse(localStorage.getItem("ss.projects") || "null") ||
+  [{id: String(Date.now()), name: "My videos", items: JSON.parse(localStorage.getItem("ss.items") || "[]"), chat: []}];
+let activeId = localStorage.getItem("ss.active") || P[0].id;
+const cur = () => P.find(p => p.id === activeId) || P[0];
+let items = cur().items;
+let open = new Set(), busy = false;
+
+function preset(kind) {
+  const [b, m] = PRE[kind][$(`#${kind}-p`).value];
+  $(`#${kind}-base`).value = b; $(`#${kind}-model`).value = m;
+}
+function loadCfg() {
+  const c = JSON.parse(localStorage.getItem("ss.cfg") || "{}");
+  preset("stt"); preset("llm");
+  F.forEach(id => { if (c[id]) $("#" + id).value = c[id]; });
+  $("#remember").checked = !!c.remember;
+  $("#auto").checked = c.auto !== false;
+}
+function saveCfg() {
+  const c = {remember: $("#remember").checked, auto: $("#auto").checked};
+  F.forEach(id => { if (!id.endsWith("key") || c.remember) c[id] = $("#" + id).value; });
+  localStorage.setItem("ss.cfg", JSON.stringify(c));
+}
+const cfg = () => ({stt_base: $("#stt-base").value, stt_key: $("#stt-key").value, stt_model: $("#stt-model").value,
+                    llm_base: $("#llm-base").value, llm_key: $("#llm-key").value, llm_model: $("#llm-model").value,
+                    composio_key: $("#cmp-key").value, composio_user: $("#cmp-user").value, composio_account: $("#cmp-acct").value,
+                    mem0_user: $("#mem-scope").value || "streamscribe", mem0_mode: $("#mem-mode").value});
+const links = () => [...new Set($("#urls").value.split(/\s+/).filter(u => /^https?:\/\//.test(u)))];
+const msg = t => $("#msg").textContent = t || "";
+const fname = t => (t || "transcript").replace(/[<>:"\/\\|?*\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60) + ".txt";
+
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type: "text/plain"}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function render() {
+  const list = $("#list"); list.replaceChildren();
+  const done = items.filter(i => i.status === "done").length;
+  $("#prog").textContent = items.length ? `${done} of ${items.length} done` : "";
+  if (!items.length) {
+    list.append(el("p", "empty", "This project has no files yet. Paste links on the left and choose Transcribe links, or use Add documents for your own .txt and .md files."));
+    return;
+  }
+  items.forEach((it, n) => {
+    const row = el("div", "item" + (open.has(n) ? " open" : ""));
+    const top = el("div", "top");
+    top.append(el("span", "ttl", it.title && it.title.replace(/\W/g, "").length > 2 ? it.title : it.url));
+    top.append(el("span", "st " + (it.status || ""), {queued: "Queued", streaming: "Streaming audio", transcribing: "Transcribing", polishing: "Cleaning up", done: "Done", error: "Failed"}[it.status] || ""));
+    top.onclick = () => { open.has(n) ? open.delete(n) : open.add(n); render(); };
+    row.append(top);
+    if (it.title && it.title.replace(/\W/g, "").length > 2) row.append(el("div", "url", it.url));
+    if (it.mem) { const m = el("div", "url", it.mem === "saved" ? "Saved to Mem0" : "Memory: " + it.mem); if (it.mem !== "saved") { m.style.color = "var(--bad)"; m.style.whiteSpace = "normal"; } row.append(m); }
+    const sig = el("div", "sig" + (it.status === "error" ? " err" : ""));
+    const at = STAGE[it.status] ?? -1;
+    for (let k = 0; k < 3; k++) sig.append(el("i", at > k ? "ok" : at === k ? "on" : ""));
+    row.append(sig);
+    const body = el("div", "body");
+    if (it.error) body.append(el("p", "err", it.error));
+    if (it.text) {
+      body.append(el("div", "txt", it.text));
+      const acts = el("div", "acts");
+      const cp = el("button", "ghost", "Copy"); cp.onclick = () => navigator.clipboard.writeText(it.text);
+      const dl = el("button", "ghost", "Download .txt"); dl.onclick = () => download(fname(it.title), it.text);
+      acts.append(cp, dl); body.append(acts);
+    }
+    row.append(body); list.append(row);
+  });
+}
+const save = () => { cur().items = items; localStorage.setItem("ss.projects", JSON.stringify(P)); localStorage.setItem("ss.active", cur().id); };
+
+async function run() {
+  const c = cfg(), urls = links().filter(u => !items.some(i => i.url === u && i.status === "done"));
+  if (!$("#auto").checked) c.composio_key = "";
+  if (!urls.length) return msg("Paste at least one new link that starts with http.");
+  if (!c.stt_key || !c.llm_key) return msg("Add both API keys under Your keys.");
+  msg(""); saveCfg(); busy = true; $("#go").disabled = true;
+  items = items.filter(i => i.status === "done" || !urls.includes(i.url));
+  const base = items.length; items = items.concat(urls.map(url => ({url, status: "queued"}))); open.clear(); render();
+  try {
+    const r = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({urls, cfg: c, cookies: $("#cookies").value})});
+    if (!r.ok) throw new Error(await r.text());
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const {done, value} = await rd.read(); if (done) break;
+      buf += dec.decode(value, {stream: true}); let n;
+      while ((n = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, n); buf = buf.slice(n + 1);
+        if (!line.trim()) continue;
+        const e = JSON.parse(line);
+        if (items[base + e.i]) Object.assign(items[base + e.i], e); save(); render(); renderProjects();
+      }
+    }
+  } catch (e) { msg("Run stopped: " + e.message); }
+  busy = false; $("#go").disabled = false; save(); render();
+}
+
+// Safety net: strip any markdown the model still sends (symbols, rules, tables, bullets).
+function plain(t) {
+  return (t || "").split("\n").filter(l => !/^\s*\|?[\s:|-]{3,}\|?\s*$/.test(l) || !l.includes("-") && !l.includes("|"))
+    .map(l => /^\s*\|.*\|\s*$/.test(l) ? l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim()).filter(Boolean).join(": ") : l)
+    .filter(l => !/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(l))
+    .map(l => l.replace(/^\s{0,3}#{1,6}\s+/, "").replace(/^\s*[-*•]\s+/, "").replace(/(\*\*|__)(.+?)\1/g, "$2")
+      .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|[.,;:!?]|$)/g, "$1$2").replace(/`([^`]*)`/g, "$1"))
+    .join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function saveMem() {
+  const c = cfg();
+  if (!c.composio_key) return msg("Add your Composio API key under Memory.");
+  const todo = items.filter(i => i.status === "done" && i.text && i.mem !== "saved");
+  if (!todo.length) return msg("Everything finished is already saved.");
+  msg(""); saveCfg(); $("#savemem").disabled = true;
+  try {
+    const r = await fetch("/api/memory", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({cfg: c, items: todo.map(i => ({title: i.title, url: i.url, text: i.text}))})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) msg(j.detail || "Saving to memory failed.");
+    else todo.forEach((i, n) => i.mem = j.results[n]);
+  } catch (e) { msg("Saving to memory failed: " + e.message); }
+  $("#savemem").disabled = false; save(); render();
+}
+
+const STOP = new Set("the and for are was with that this from what which who how why does about have has you your not but can all any".split(" "));
+const words = t => (t.toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter(w => !STOP.has(w));
+// Small projects go to the model whole. Big ones send only the passages that best match the question.
+function recall(q, docs, budget = 45000) {
+  const whole = docs.map(d => `## ${d.title}\n${d.text}`).join("\n\n");
+  if (whole.length <= budget) return {ctx: whole, used: docs.map(d => d.title)};
+  const qs = new Set(words(q)), chunks = [];
+  docs.forEach(d => {
+    for (let i = 0; i < d.text.length; i += 1200) {
+      const c = d.text.slice(i, i + 1500), ws = words(c);
+      chunks.push({t: d.title, c, s: ws.filter(w => qs.has(w)).length / Math.sqrt(ws.length + 1)});
+    }
+  });
+  chunks.sort((x, y) => y.s - x.s);
+  let ctx = "", n = 0; const used = new Set();
+  for (const k of chunks) { if (n + k.c.length > budget) break; ctx += `## ${k.t}\n${k.c}\n\n`; n += k.c.length; used.add(k.t); }
+  return {ctx, used: [...used]};
+}
+
+function renderChat() {
+  const log = $("#chatlog"); log.replaceChildren();
+  (cur().chat || []).forEach(m => {
+    log.append(el("div", "turn " + (m.role === "user" ? "u" : "a"), m.content));
+    if (m.sources && m.sources.length) log.append(el("div", "url", "From: " + m.sources.join(", ")));
+  });
+}
+
+async function ask() {
+  const q = $("#q").value.trim(); if (!q) return;
+  const docs = items.filter(i => i.status === "done" && i.text), p = cur();
+  if (!docs.length) return msg("Add some files to this project first, then chat with them.");
+  msg(""); p.chat = p.chat || [];
+  const history = p.chat.slice(-8).map(({role, content}) => ({role, content}));
+  p.chat.push({role: "user", content: q}); $("#q").value = "";
+  const reply = {role: "assistant", content: "Reading your files…"}; p.chat.push(reply); renderChat();
+  const {ctx, used} = recall(q, docs);
+  try {
+    const r = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question: q, cfg: cfg(), context: ctx, history})});
+    const j = await r.json().catch(() => ({}));
+    reply.content = r.ok ? plain(j.answer) : (j.detail || "That didn’t work. Check your chat key under Your keys.");
+    if (r.ok) reply.sources = used;
+  } catch (e) { reply.content = "That didn’t work: " + e.message; }
+  save(); renderChat();
+}
+
+// ---- Projects ----
+function renderProjects() {
+  const l = $("#plist"); l.replaceChildren();
+  P.forEach(p => {
+    const b = el("button", "pj" + (p.id === cur().id ? " on" : ""), p.name);
+    b.append(el("span", "pc", String(p.items.filter(i => i.status === "done").length)));
+    b.onclick = () => setProject(p.id); l.append(b);
+  });
+  $("#ptitle").textContent = cur().name;
+}
+function setProject(id) {
+  if (busy) return;
+  activeId = id; items = cur().items; open.clear(); save(); renderProjects(); render(); renderChat();
+}
+
+function tab(which) {
+  $("#t-tr").setAttribute("aria-selected", which === "tr"); $("#t-ask").setAttribute("aria-selected", which === "ask");
+  $("#p-tr").hidden = which !== "tr"; $("#p-ask").hidden = which !== "ask";
+}
+
+$("#stt-p").onchange = () => preset("stt"); $("#llm-p").onchange = () => preset("llm");
+$("#urls").oninput = () => $("#count").textContent = `${links().length} link${links().length === 1 ? "" : "s"}`;
+$("#go").onclick = run; $("#savemem").onclick = saveMem; $("#askgo").onclick = ask;
+$("#t-tr").onclick = () => tab("tr"); $("#t-ask").onclick = () => tab("ask");
+document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { $("#q").value = b.dataset.q; ask(); });
+$("#clear").onclick = () => { if (!busy && confirm("Remove all files from this project?")) { items = []; save(); render(); renderProjects(); } };
+$("#newchat").onclick = () => { cur().chat = []; save(); renderChat(); };
+$("#newp").onclick = () => {
+  const n = (prompt("Project name") || "").trim(); if (!n || busy) return;
+  P.push({id: String(Date.now()), name: n.slice(0, 40), items: [], chat: []}); setProject(P[P.length - 1].id);
+};
+$("#renp").onclick = () => { const n = (prompt("New name", cur().name) || "").trim(); if (n) { cur().name = n.slice(0, 40); save(); renderProjects(); } };
+$("#delp").onclick = () => {
+  if (busy || !confirm(`Delete “${cur().name}” and all its files?`)) return;
+  P = P.filter(p => p.id !== cur().id);
+  if (!P.length) P = [{id: String(Date.now()), name: "My videos", items: [], chat: []}];
+  setProject(P[0].id);
+};
+$("#adddoc").onclick = () => $("#docfile").click();
+$("#docfile").onchange = async e => {
+  for (const f of e.target.files) {
+    const t = (await f.text()).trim();
+    if (t) items.push({url: "File: " + f.name, title: f.name.replace(/\.(txt|md)$/i, ""), text: t, status: "done", kind: "doc"});
+  }
+  e.target.value = ""; save(); render(); renderProjects();
+};
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+$("#dlall").onclick = () => {
+  const d = items.filter(i => i.text);
+  if (d.length) download("transcripts.txt", d.map(i => `# ${i.title}\n${i.url}\n\n${i.text}`).join("\n\n---\n\n"));
+};
+
+async function addFiles(files) {
+  const ok = [...files].filter(f => /\.txt$/i.test(f.name) || f.type === "text/plain");
+  if (!ok.length) return msg("Drop a .txt file with one link per line.");
+  msg("");
+  const parts = await Promise.all(ok.map(f => f.text()));
+  const box = $("#urls");
+  box.value = [box.value.trim(), ...parts.map(t => t.trim())].filter(Boolean).join("\n");
+  box.dispatchEvent(new Event("input"));
+}
+const zone = $("#zone");
+["dragenter", "dragover"].forEach(t => window.addEventListener(t, e => { e.preventDefault(); if (e.target.closest("aside")) zone.classList.add("drop"); }));
+window.addEventListener("dragleave", e => { if (!e.relatedTarget || !e.relatedTarget.closest("aside")) zone.classList.remove("drop"); });
+window.addEventListener("drop", e => {
+  e.preventDefault(); zone.classList.remove("drop");
+  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+$("#pick").onclick = () => $("#file").click();
+$("#file").onchange = e => { addFiles(e.target.files); e.target.value = ""; };
+loadCfg(); renderProjects(); render(); renderChat();
+</script>
+</body>
+</html>
